@@ -1,5 +1,4 @@
 # config.py
-
 class Config:
     SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:zc142500@localhost/car'  # Hive 连接字符串
     SQLALCHEMY_TRACK_MODIFICATIONS = False

@@ -1,4 +1,4 @@
-from app import db
+from extensions import db
 
 class CarCount(db.Model):
     __tablename__ = 'car_count'

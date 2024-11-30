@@ -1,4 +1,4 @@
-from app import db
+from extensions import db
 
 class AddressSum(db.Model):
     __tablename__ = 'address_sum'

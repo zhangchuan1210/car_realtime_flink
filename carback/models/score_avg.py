@@ -1,4 +1,4 @@
-from app import db
+from extensions import db
 
 class ScoreAvg(db.Model):
     __tablename__ = 'score_avg'

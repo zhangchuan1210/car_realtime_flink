@@ -12,10 +12,3 @@ class KafkaUtil(object):
     def createKafkaProducer():
         producer = KafkaProducer(bootstrap_servers=Config.KAFKA_BROKER_URL)
         return producer
-
-    @staticmethod
-    def consumeBySpark(spark, topic_name):
-        kafka_stream = spark.readStream.format("kafka").option("kafka.bootstrap.servers",
-                                                               Config.KAFKA_BROKER_URL).option("failOnDataLoss", "false") \
-                                                               .option("startingOffsets", "earliest").option("subscribe",topic_name).load()
-        return kafka_stream

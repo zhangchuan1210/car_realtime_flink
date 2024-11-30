@@ -1,4 +1,4 @@
-from app import db
+from extensions import db
 
 class Car(db.Model):
     __tablename__ = 'user_t'
