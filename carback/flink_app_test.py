@@ -1,30 +1,14 @@
-from flask import Flask
-from pyflink.table import EnvironmentSettings, TableEnvironment
-from pyflink.table.expressions import col
+import logging
 
-app = Flask(__name__)
+from pyflink.datastream import StreamExecutionEnvironment
 
+env = StreamExecutionEnvironment.get_execution_environment()
+env.set_parallelism(1)
+logging.basicConfig(level=logging.DEBUG)
+data = env.from_collection([1, 2, 3, 4, 5])
+try:
+    data.map(lambda x: x*x).print()  # 故意加入异常
+except Exception as e:
+    print("Caught Exception:", e)
 
-@app.route('/')
-def hello_world():  # put application's code here
-    return 'Hello World!'
-
-
-
-env_settings = EnvironmentSettings.new_instance().in_batch_mode().build()
-table_env = TableEnvironment.create(environment_settings=env_settings)
-
-# 定义输入数据
-data = [(1,), (2,), (3,), (4,), (5,)]
-schema = ['number']
-
-# 将数据转换为表
-source_table = table_env.from_elements(data, schema)
-
-# 定义查询逻辑：计算平方
-result_table = source_table.select(col("number"), (col("number") * col("number")).alias("squared"))
-
-# 打印结果
-result_table.execute().print()
-if __name__ == '__main__':
-    app.run()
+env.execute("example")

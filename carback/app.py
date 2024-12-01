@@ -1,5 +1,6 @@
 import importlib
 import json
+import logging
 import os
 import pkgutil
 
@@ -30,12 +31,13 @@ def load_plugins(plugin_directory):
 def create_kafka():
     kafka_source = KafkaSource.builder() \
         .set_bootstrap_servers(Config.KAFKA_BROKER_URL) \
-        .set_topics("input_topic") \
+        .set_topics("itcast_order") \
         .set_group_id("flink_group") \
         .set_value_only_deserializer(SimpleStringSchema()) \
         .build()
     return kafka_source
 def create_app():
+    logging.basicConfig(level=logging.DEBUG)
     # 读取配置文件
     with open('.\\carback\\job_config.json', 'r') as f:
         config = json.load(f)
@@ -45,7 +47,7 @@ def create_app():
     plugins = load_plugins(plugin_directory)
     print("已加载的插件：{list(plugins.keys())}")
     # 创建 Flink 作业线程，传入配置对象和插件字典
-    flink_thread = FlinkJobThread(job_name="My Flink Job",config=config, plugins=plugins,source=create_kafka(),target=RedisSinkUtil.write_to_redis)
+    flink_thread = FlinkJobThread(job_name="My Flink Job",config=config, plugins=plugins,source=create_kafka(),target=RedisSinkUtil())
     # 启动 Flink 作业线程
     flink_thread.start()
     app = Flask(__name__)
