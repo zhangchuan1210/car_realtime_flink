@@ -1,45 +1,130 @@
 <template>
   <div>
-    <h2>Score Average</h2>
-    <div v-if="loading">Loading...</div>
-    <div v-else-if="error">Error: {{ error }}</div>
-    <div v-else>
-      <p>Average Score: {{ scoreAvg }}</p>
-    </div>
+    <h2>汽车平均评分统计</h2>
+    <div id="container" ref="chartContainer" style="height: 200%;"></div>
+    <div id="message"></div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
-import axios from 'axios';
+import { onMounted, ref, onBeforeUnmount } from "vue";
+import * as echarts from "echarts";
+import "echarts/theme/vintage";
 
 export default {
-  name: 'ScoreAverage',
+  name: "ScoreAverage",
   setup() {
-    const scoreAvg = ref(null);
-    const loading = ref(true);
-    const error = ref(null);
+    const chartContainer = ref(null);
+    let myChart = null;
+    let websocket = null;
 
-    const fetchData = async () => {
-      try {
-        const response = await axios.get('/api/score/average');
-        scoreAvg.value = response.data.average;
-      } catch (err) {
-        error.value = err.message;
-      } finally {
-        loading.value = false;
+    // 初始化 ECharts
+    const initChart = () => {
+      if (chartContainer.value) {
+        myChart = echarts.init(chartContainer.value, 'vintage');
+        myChart.setOption({
+          title: {
+            text: "汽车平均评分统计",
+            left: 10
+          },
+          toolbox: {
+            feature: {
+              dataZoom: {
+                yAxisIndex: false
+              },
+              saveAsImage: {
+                pixelRatio: 2
+              }
+            }
+          },
+          tooltip: {
+            trigger: "axis",
+            axisPointer: {
+              type: "shadow"
+            }
+          },
+          grid: {
+            bottom: 90
+          },
+          dataZoom: [
+            {
+              type: "inside",
+              yAxisIndex: [0],
+              left: "1%"
+            },
+            {
+              type: "slider",
+              yAxisIndex: [0]
+            }
+          ],
+          yAxis: {
+            data: [],
+            silent: false,
+            splitLine: {
+              show: false
+            },
+            splitArea: {
+              show: false
+            }
+          },
+          xAxis: {
+            splitArea: {
+              show: false
+            }
+          },
+          series: [
+            {
+              type: "bar",
+              data: [],
+              large: true
+            }
+          ]
+        });
+      }
+    };
+
+    // WebSocket 连接处理
+    const connectWebSocket = () => {
+      if ("WebSocket" in window) {
+        websocket = new WebSocket("ws://localhost:8080/score-avg-web-socket");
+        websocket.onmessage = (event) => {
+          const jsonbean = JSON.parse(event.data);
+          myChart.setOption({
+            yAxis: {
+              data: jsonbean.carNameList
+            },
+            series: [{
+              data: jsonbean.scoreAvgList
+            }]
+          });
+        };
+      } else {
+        alert("当前浏览器不支持 WebSocket");
       }
     };
 
     onMounted(() => {
-      fetchData();
+      initChart();
+      connectWebSocket();
+    });
+
+    onBeforeUnmount(() => {
+      if (websocket) {
+        websocket.close();
+      }
     });
 
     return {
-      scoreAvg,
-      loading,
-      error,
+      chartContainer
     };
   }
 };
 </script>
+
+<style scoped>
+  #container {
+    width: 100%;
+    height: 500px;
+    margin-top: 20px;
+  }
+</style>

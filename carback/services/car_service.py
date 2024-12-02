@@ -7,7 +7,13 @@ class CarService:
         return db.session.execute("select * from user_t where id=?", car_id)
 
     def get_all_cars(self):
-        return Car.query.all()
+        page_size=10
+        total_count = db.session.query(Car).count()
+        all_cars=[]
+        for page in (total_count+page_size-1)/page_size:
+            cars=db.session.query(Car).limit(page_size).offset((page - 1) * page_size).all()
+            all_cars.append(cars)
+        return all_cars
 
     def add_car(self,model, brand, year, price):
         car = Car(model=model, brand=brand, year=year, price=price)

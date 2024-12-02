@@ -6,15 +6,6 @@ from util.KafkaUtil import KafkaUtil
 
 
 class SchedulerService:
-    def consume_itcast_order_stream(self):
-        # {"c_name": "423", "oil_consume": 2.8}
-        print("消费线程运行")
-
-    def consume_itcast_order(self):
-        task_thread = threading.Thread(target=self.consume_itcast_order_stream, daemon=True)
-        task_thread.start()
-        print("Thread started, Flask app will now run.")
-
     # 从 MySQL 读取数据并发送到 Kafka
     def produce_itcast_order(self):
         global count

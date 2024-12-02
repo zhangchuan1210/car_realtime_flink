@@ -1,45 +1,97 @@
 <template>
   <div>
-    <h2>Price Range</h2>
-    <div v-if="loading">Loading...</div>
-    <div v-else-if="error">Error: {{ error }}</div>
-    <div v-else>
-      <p>Price Range: {{ priceRange.min }} - {{ priceRange.max }} USD</p>
-    </div>
+    <h2>汽车价格区间统计</h2>
+    <div id="container" ref="chartContainer" style="height: 100%;"></div>
+    <div id="message"></div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
-import axios from 'axios';
+import { onMounted, ref, onBeforeUnmount } from "vue";
+import * as echarts from "echarts";
+import "echarts/theme/vintage";
 
 export default {
-  name: 'PriceRange',
+  name: "PriceRange",
   setup() {
-    const priceRange = ref({ min: null, max: null });
-    const loading = ref(true);
-    const error = ref(null);
+    const chartContainer = ref(null);
+    let myChart = null;
+    let websocket = null;
 
-    const fetchData = async () => {
-      try {
-        const response = await axios.get('/api/price/range');
-        priceRange.value = response.data;
-      } catch (err) {
-        error.value = err.message;
-      } finally {
-        loading.value = false;
+    // 初始化 ECharts
+    const initChart = () => {
+      if (chartContainer.value) {
+        myChart = echarts.init(chartContainer.value, 'vintage');
+        myChart.setOption({
+          title: {
+            text: "汽车价格区间统计",
+            left: "center"
+          },
+          tooltip: {
+            trigger: "item"
+          },
+          legend: {
+            orient: "vertical",
+            left: "left"
+          },
+          series: [
+            {
+              name: "价格区间",
+              type: "pie",
+              radius: "50%",
+              data: [],
+              emphasis: {
+                itemStyle: {
+                  shadowBlur: 10,
+                  shadowOffsetX: 0,
+                  shadowColor: "rgba(0, 0, 0, 0.5)"
+                }
+              }
+            }
+          ]
+        });
+      }
+    };
+
+    // WebSocket 连接处理
+    const connectWebSocket = () => {
+      if ("WebSocket" in window) {
+        websocket = new WebSocket("ws://localhost:8080/price-range-web-socket");
+        websocket.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          myChart.setOption({
+            series: [{
+              data: data
+            }]
+          });
+        };
+      } else {
+        alert("当前浏览器不支持 WebSocket");
       }
     };
 
     onMounted(() => {
-      fetchData();
+      initChart();
+      connectWebSocket();
+    });
+
+    onBeforeUnmount(() => {
+      if (websocket) {
+        websocket.close();
+      }
     });
 
     return {
-      priceRange,
-      loading,
-      error,
+      chartContainer
     };
   }
 };
 </script>
+
+<style scoped>
+  #container {
+    width: 100%;
+    height: 500px;
+    margin-top: 20px;
+  }
+</style>

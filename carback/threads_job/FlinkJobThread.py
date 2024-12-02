@@ -14,8 +14,7 @@ class FlinkJobThread(threading.Thread):
         self.config = config  # 接受配置对象
         self.plugins = plugins  # 已加载的插件字典
         self._stop_event = threading.Event()
-        self.env = StreamExecutionEnvironment.get_execution_environment()
-        self.env.set_parallelism(1)
+        self.env = StreamExecutionEnvironment.get_execution_environment().set_parallelism(1)
         self.source = source
         self.target = target
         self.job_client = None
@@ -51,7 +50,7 @@ class FlinkJobThread(threading.Thread):
     # 修改作业配置函数，接受配置参数
     def configure_job(self, config):
         watermark_strategy = WatermarkStrategy.for_bounded_out_of_orderness(Duration.of_hours(1))
-        kafka_stream = self.env.from_source(self.source, watermark_strategy, "config.source")
+        kafka_stream = self.env.from_source(self.source, watermark_strategy, self.job_name)
         # 获取插件名称
         plugin_name = config.get('plugin_name')
         if not plugin_name:

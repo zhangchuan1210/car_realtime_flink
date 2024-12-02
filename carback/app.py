@@ -9,7 +9,7 @@ from flask_cors import CORS
 from pyflink.common import SimpleStringSchema
 from pyflink.datastream.connectors.kafka import KafkaSource
 
-from FlinkJobThread import FlinkJobThread
+from threads_job.FlinkJobThread import FlinkJobThread
 from config import Config
 from extensions import db
 from processing_plugins.base import ProcessingPlugin
