@@ -2,7 +2,7 @@
   <div
     style="
       text-align: center;
-      background-image: url('../assets/car.jpg');
+      background-image: url('/assets/car.jpg');
       background-size: cover;
       background-attachment: fixed;
       background-repeat: no-repeat;
@@ -23,13 +23,10 @@
         :key="item.route"
         class="dashboard-item"
       >
-<div>
-    <h2>{{item.description}}</h2>
-    <div v-if="loading">Loading...</div>
-    <div v-else-if="error">Error: {{ error }}</div>
-    <div v-else>
-    </div>
-  </div>
+    <!-- 显示标题 -->
+      <h3 class="dashboard-title">{{ item.description }}</h3>
+      <!-- 显示图片/图表 -->
+      <img :src="item.img" :alt="item.alt" class="dashboard-img" />
       </router-link>
     </div>
   </div>
@@ -47,25 +44,25 @@
     const stats = [
        {
         route: "/oilavg",
-        img: "../assets/oilavg.png",
+        img: "/assets/oilavg.png",
         alt: "油耗统计",
         description: "汽车平均油耗统计",
       },
       {
         route: "/scoreavg",
-        img: "../assets/scoreavg.png",
+        img: "/assets/scoreavg.png",
         alt: "评分统计",
         description: "汽车平均评分统计",
       },
       {
         route: "/addresssum",
-        img: "../assets/addresssum.png",
+        img: "/assets/addresssum.png",
         alt: "地址统计",
         description: "汽车地址统计",
       },
       {
         route: "/pricerange",
-        img: "../assets/addresssum.png",
+        img: "/assets/pricerange.png",
         alt: "价格区间统计",
         description: "汽车价格区间统计",
       },
@@ -105,6 +102,17 @@ body {
   text-decoration: none; /* 去除链接样式 */
   color: inherit;
   transition: transform 0.2s ease-in-out;
+}
+.dashboard-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.dashboard-img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
 }
 
 .dashboard-item:hover {

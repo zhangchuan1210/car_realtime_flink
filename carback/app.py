@@ -3,17 +3,18 @@ import json
 import logging
 import os
 import pkgutil
-
 from flask import Flask
 from flask_cors import CORS
 from pyflink.common import SimpleStringSchema
 from pyflink.datastream.connectors.kafka import KafkaSource
 
-from threads_job.FlinkJobThread import FlinkJobThread
 from config import Config
 from extensions import db
 from processing_plugins.base import ProcessingPlugin
+from processing_plugins.key_base import KeyProcessingPlugin
+from threads_job.FlinkJobThread import FlinkJobThread
 from util.RedisSinkUtil import RedisSinkUtil
+from util.WebsocketUtil import start_websocket
 
 
 def load_plugins(plugin_directory):
@@ -23,7 +24,7 @@ def load_plugins(plugin_directory):
         module = importlib.import_module(module_name)
         for attr_name in dir(module):
             attr = getattr(module, attr_name)
-            if isinstance(attr, type) and issubclass(attr, ProcessingPlugin) and attr is not ProcessingPlugin:
+            if isinstance(attr, type) and issubclass(attr, ProcessingPlugin) and attr is not ProcessingPlugin and attr is not KeyProcessingPlugin:
                 plugin_instance = attr()
                 plugins[name] = plugin_instance
     return plugins
@@ -36,6 +37,9 @@ def create_kafka():
         .set_value_only_deserializer(SimpleStringSchema()) \
         .build()
     return kafka_source
+
+
+
 def create_app():
     logging.basicConfig(level=logging.DEBUG)
     # 读取配置文件
@@ -60,6 +64,7 @@ def create_app():
     from controllers.car_controller import page_controller
     app.register_blueprint(schedular_controller)
     app.register_blueprint(page_controller)
+    start_websocket(app)
     return app
 
 

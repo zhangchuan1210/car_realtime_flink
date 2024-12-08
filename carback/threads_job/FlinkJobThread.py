@@ -8,13 +8,14 @@ from pyflink.datastream.functions import MapFunction, SinkFunction
 
 
 class FlinkJobThread(threading.Thread):
-    def __init__(self, job_name, config, plugins, source: Source, target: SinkFunction):
+    def __init__(self, job_name, config, plugins, source: Source, target: SinkFunction,watermark_strategy=WatermarkStrategy.for_bounded_out_of_orderness(Duration.of_hours(1))):
         super().__init__()
         self.job_name = job_name
         self.config = config  # 接受配置对象
         self.plugins = plugins  # 已加载的插件字典
         self._stop_event = threading.Event()
         self.env = StreamExecutionEnvironment.get_execution_environment().set_parallelism(1)
+        self.watermark_strategy=watermark_strategy
         self.source = source
         self.target = target
         self.job_client = None
@@ -49,8 +50,7 @@ class FlinkJobThread(threading.Thread):
 
     # 修改作业配置函数，接受配置参数
     def configure_job(self, config):
-        watermark_strategy = WatermarkStrategy.for_bounded_out_of_orderness(Duration.of_hours(1))
-        kafka_stream = self.env.from_source(self.source, watermark_strategy, self.job_name)
+        kafka_stream = self.env.from_source(self.source, self.watermark_strategy, self.job_name)
         # 获取插件名称
         plugin_name = config.get('plugin_name')
         if not plugin_name:
@@ -65,7 +65,5 @@ class FlinkJobThread(threading.Thread):
             def map(self, value):
                 data = json.loads(value)
                 return plugin_instance.process(data)
-
-        processed_stream = kafka_stream.map(PluginMapFunction())
-        # 添加 Redis 数据汇
-        processed_stream.process(self.target)
+        flink_stream=kafka_stream.map(PluginMapFunction())\
+         .key_by(lambda x: x[0]).process(plugin_instance)
