@@ -2,14 +2,15 @@ import json
 import time
 from datetime import datetime
 from pyflink.common import Types
-from pyflink.datastream import RuntimeContext
+from pyflink.datastream import RuntimeContext, KeyedProcessFunction, MapFunction
 from pyflink.datastream.state import ValueStateDescriptor
-from processing_plugins.key_base import KeyProcessingPlugin
+
+from processing_plugins.base import ProcessingPlugin
 from util.RedisUtil import RedisUtil
 from util.WebsocketUtil import push_to_frontend
 
 
-class ComputeAverageFuelConsumption(KeyProcessingPlugin):
+class AverageFuelConsumptionPlugin(ProcessingPlugin, KeyedProcessFunction,MapFunction):
     def __init__(self, window_size_ms=1000 * 3600):
         self.window_size_ms = window_size_ms  # 3个月的毫秒数
 
@@ -50,3 +51,6 @@ class ComputeAverageFuelConsumption(KeyProcessingPlugin):
         push_to_frontend("oil-avg-web-socket",var)
         RedisUtil.put("haoyouliang",json.dumps(var))
         return value
+    def map(self, value):
+        data = json.loads(value)
+        return self.process(data)

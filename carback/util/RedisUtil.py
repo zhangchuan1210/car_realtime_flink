@@ -9,3 +9,4 @@ class RedisUtil:
     @staticmethod
     def put(key, value):
         RedisUtil.redis_client.rpush(key, value)
+        RedisUtil.redis_client.hincrby()

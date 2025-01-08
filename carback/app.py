@@ -11,7 +11,6 @@ from pyflink.datastream.connectors.kafka import KafkaSource
 from config import Config
 from extensions import db
 from processing_plugins.base import ProcessingPlugin
-from processing_plugins.key_base import KeyProcessingPlugin
 from threads_job.FlinkJobThread import FlinkJobThread
 from util.RedisSinkUtil import RedisSinkUtil
 from util.WebsocketUtil import start_websocket
@@ -20,14 +19,15 @@ from util.WebsocketUtil import start_websocket
 def load_plugins(plugin_directory):
     plugins = {}
     for finder, name, ispkg in pkgutil.iter_modules([plugin_directory]):
-        module_name = "processing_plugins."+name
+        module_name = "processing_plugins." + name
         module = importlib.import_module(module_name)
         for attr_name in dir(module):
             attr = getattr(module, attr_name)
-            if isinstance(attr, type) and issubclass(attr, ProcessingPlugin) and attr is not ProcessingPlugin and attr is not KeyProcessingPlugin:
+            if isinstance(attr, type) and issubclass(attr, ProcessingPlugin) and attr is not ProcessingPlugin:
                 plugin_instance = attr()
                 plugins[name] = plugin_instance
     return plugins
+
 
 def create_kafka():
     kafka_source = KafkaSource.builder() \
@@ -37,7 +37,6 @@ def create_kafka():
         .set_value_only_deserializer(SimpleStringSchema()) \
         .build()
     return kafka_source
-
 
 
 def create_app():
@@ -51,7 +50,8 @@ def create_app():
     plugins = load_plugins(plugin_directory)
     print("已加载的插件：{list(plugins.keys())}")
     # 创建 Flink 作业线程，传入配置对象和插件字典
-    flink_thread = FlinkJobThread(job_name="My Flink Job",config=config, plugins=plugins,source=create_kafka(),target=RedisSinkUtil())
+    flink_thread = FlinkJobThread(job_name="My Flink Job", config=config, plugins=plugins, source=create_kafka(),
+                                  target=RedisSinkUtil())
     # 启动 Flink 作业线程
     flink_thread.start()
     app = Flask(__name__)

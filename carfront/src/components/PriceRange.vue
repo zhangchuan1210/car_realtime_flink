@@ -1,28 +1,30 @@
 <template>
   <div>
     <h2>汽车价格区间统计</h2>
-    <div id="container" ref="chartContainer" style="height: 100%;"></div>
+    <div id="container" ref="chartContainer" style="height: 600px;"></div>
     <div id="message"></div>
   </div>
 </template>
 
 <script>
-import { onMounted, ref, onBeforeUnmount } from "vue";
 import * as echarts from "echarts";
 import "echarts/theme/vintage";
+import {io} from "socket.io-client";
 
 export default {
   name: "PriceRange",
-  setup() {
-    const chartContainer = ref(null);
-    let myChart = null;
-    let websocket = null;
-
+  data(){
+    return {
+      socket: null,  // WebSocket
+      myChart: null, // ECharts 实例
+      priceData:[28,89,90,35]
+    };
+  },
+  methods:{
     // 初始化 ECharts
-    const initChart = () => {
-      if (chartContainer.value) {
-        myChart = echarts.init(chartContainer.value, 'vintage');
-        myChart.setOption({
+    initChart() {
+        this.myChart = echarts.init(this.$refs.chartContainer, 'vintage');
+        this.myChart.setOption({
           title: {
             text: "汽车价格区间统计",
             left: "center"
@@ -38,8 +40,8 @@ export default {
             {
               name: "价格区间",
               type: "pie",
-              radius: "50%",
-              data: [],
+              radius: "80%",
+              data: this.priceData,
               emphasis: {
                 itemStyle: {
                   shadowBlur: 10,
@@ -50,40 +52,29 @@ export default {
             }
           ]
         });
-      }
-    };
-
+    },
     // WebSocket 连接处理
-    const connectWebSocket = () => {
-      if ("WebSocket" in window) {
-        websocket = new WebSocket("ws://localhost:8080/price-range-web-socket");
-        websocket.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          myChart.setOption({
+    connectWebSocket() {
+        this.socket = io('http://localhost:5000')
+        this.socket.onmessage = (event) => {
+          this.priceData = JSON.parse(event.data);
+          this.myChart.setOption({
             series: [{
-              data: data
+              data: this.priceData
             }]
           });
         };
-      } else {
-        alert("当前浏览器不支持 WebSocket");
+
+    }
+  },
+  mounted() {
+      this.initChart();
+      this.connectWebSocket();
+    },
+  beforeUnmount(){
+      if (this.socket) {
+      this.socket.disconnect(); // 断开 WebSocket 连接
       }
-    };
-
-    onMounted(() => {
-      initChart();
-      connectWebSocket();
-    });
-
-    onBeforeUnmount(() => {
-      if (websocket) {
-        websocket.close();
-      }
-    });
-
-    return {
-      chartContainer
-    };
   }
 };
 </script>
@@ -91,7 +82,7 @@ export default {
 <style scoped>
   #container {
     width: 100%;
-    height: 500px;
-    margin-top: 20px;
+    height: 100%;
+    margin-top: 120px;
   }
 </style>

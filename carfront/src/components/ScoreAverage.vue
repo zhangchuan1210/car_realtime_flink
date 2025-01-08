@@ -1,28 +1,31 @@
 <template>
   <div>
     <h2>汽车平均评分统计</h2>
-    <div id="container" ref="chartContainer" style="height: 200%;"></div>
+    <div id="container" ref="chartContainer" style="height: 600px;"></div>
     <div id="message"></div>
   </div>
 </template>
 
 <script>
-import { onMounted, ref, onBeforeUnmount } from "vue";
 import * as echarts from "echarts";
 import "echarts/theme/vintage";
+import {io} from "socket.io-client";
 
 export default {
   name: "ScoreAverage",
-  setup() {
-    const chartContainer = ref(null);
-    let myChart = null;
-    let websocket = null;
-
+  data(){
+     return {
+      websocket: null,  // WebSocket
+      myChart: null, // ECharts 实例
+      carNameList:[28,89,90,35],
+       scoreAvgList:[34.4,56.7,45.8,89.9]
+    };
+  },
+  methods: {
     // 初始化 ECharts
-    const initChart = () => {
-      if (chartContainer.value) {
-        myChart = echarts.init(chartContainer.value, 'vintage');
-        myChart.setOption({
+    initChart() {
+        this.myChart = echarts.init(this.$refs.chartContainer, 'vintage');
+        this.myChart.setOption({
           title: {
             text: "汽车平均评分统计",
             left: 10
@@ -58,7 +61,7 @@ export default {
             }
           ],
           yAxis: {
-            data: [],
+            data: this.carNameList,
             silent: false,
             splitLine: {
               show: false
@@ -75,21 +78,19 @@ export default {
           series: [
             {
               type: "bar",
-              data: [],
+              data: this.scoreAvgList,
               large: true
             }
           ]
         });
-      }
-    };
+    },
 
     // WebSocket 连接处理
-    const connectWebSocket = () => {
-      if ("WebSocket" in window) {
-        websocket = new WebSocket("ws://localhost:8080/score-avg-web-socket");
-        websocket.onmessage = (event) => {
+    connectWebSocket() {
+      this.websocket = io('http://localhost:5000');
+      this.websocket.onmessage = (event) => {
           const jsonbean = JSON.parse(event.data);
-          myChart.setOption({
+          this.myChart.setOption({
             yAxis: {
               data: jsonbean.carNameList
             },
@@ -98,25 +99,18 @@ export default {
             }]
           });
         };
-      } else {
-        alert("当前浏览器不支持 WebSocket");
+
+    }
+
+  },
+  mounted() {
+      this.initChart();
+      this.connectWebSocket();
+  },
+  beforeUnmount(){
+      if (this.websocket) {
+        this.websocket.close();
       }
-    };
-
-    onMounted(() => {
-      initChart();
-      connectWebSocket();
-    });
-
-    onBeforeUnmount(() => {
-      if (websocket) {
-        websocket.close();
-      }
-    });
-
-    return {
-      chartContainer
-    };
   }
 };
 </script>

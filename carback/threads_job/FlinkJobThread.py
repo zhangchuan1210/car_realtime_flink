@@ -1,10 +1,18 @@
 import json
 import threading
 
-from pyflink.common import JobExecutionResult, WatermarkStrategy, Duration, Row
+from pyflink.common import JobExecutionResult, WatermarkStrategy, Duration, Row, Time
 from pyflink.datastream import StreamExecutionEnvironment
 from pyflink.datastream.connectors import Source
 from pyflink.datastream.functions import MapFunction, SinkFunction
+from pyflink.datastream.window import SlidingEventTimeWindows
+
+from processing_plugins.address_car_count_plugin import AddressCarCountPlugin
+from processing_plugins.average_fuel_plugin import AverageFuelConsumptionPlugin
+from processing_plugins.average_score_plugin import AverageScorePlugin
+from processing_plugins.car_price_range_plugin import CarPriceRangePlugin
+from processing_plugins.car_price_score_plugin import CarPriceScorePlugin
+from processing_plugins.car_sale_count_plugin import CarSaleCountPlugin
 
 
 class FlinkJobThread(threading.Thread):
@@ -55,15 +63,20 @@ class FlinkJobThread(threading.Thread):
         plugin_name = config.get('plugin_name')
         if not plugin_name:
             raise ValueError("配置文件中缺少 'plugin_name' 字段")
-        # 获取对应的插件实例
-        plugin_instance = self.plugins.get(plugin_name)
-        if not plugin_instance:
-            raise ValueError(f"未找到名为 '{plugin_name}' 的插件")
-
-        # 定义 MapFunction，使用插件的处理逻辑
-        class PluginMapFunction(MapFunction):
-            def map(self, value):
-                data = json.loads(value)
-                return plugin_instance.process(data)
-        flink_stream=kafka_stream.map(PluginMapFunction())\
-         .key_by(lambda x: x[0]).process(plugin_instance)
+        address_car_count=AddressCarCountPlugin()
+        average_score=AverageScorePlugin()
+        car_sale_count=CarSaleCountPlugin()
+        car_price_range=CarPriceRangePlugin()
+        car_price_score=CarPriceScorePlugin()
+        average_fuel=AverageFuelConsumptionPlugin()
+        kafka_stream.map(average_fuel).key_by(lambda x: x[0]).process(average_fuel)
+        #按地域统计销售总量
+        kafka_stream.map(address_car_count).key_by(lambda x: x.getString("buy_address")).window(SlidingEventTimeWindows.of(Time.days(365),Time.minutes(10))).allowed_lateness(24*60*60*1000).process(address_car_count)
+        #每款车评分均值
+        kafka_stream.map(average_score).key_by(lambda x: x.getString("c_name")).process(average_score)
+        #每款车销量
+        kafka_stream.map(car_sale_count).key_by(lambda x: x.getString("c_name")).process(car_sale_count)
+        #汽车售价和销量对比分析
+        kafka_stream.map(car_price_range).key_by(lambda x: x.getString("price_section")).process(car_price_range)
+        #汽车售价和评分对比分析
+        kafka_stream.map(car_price_score).key_by(lambda x: x.getString("price_section")).process(car_price_score)
